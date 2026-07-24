@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f4f7;
+    margin: 0;
+}
+
+
+.container {
+
+    max-width: 900px;
+    margin: 40px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+
+}
+
+
+h1 {
+
+    text-align: center;
+    color: #1b4d3e;
+
+}
+
+
+.descricao {
+
+    text-align:center;
+    color:#555;
+
+}
+
+
+form {
+
+    display:flex;
+    gap:10px;
+    margin:30px 0;
+
+}
+
+
+input {
+
+    flex:1;
+    padding:12px;
+    font-size:16px;
+
+}
+
+
+button {
+
+    padding:12px 25px;
+    background:#1b4d3e;
+    color:white;
+    border:none;
+    cursor:pointer;
+
+}
+
+
+.resultado {
+
+    border-left:5px solid #1b4d3e;
+    padding:15px;
+    margin:20px 0;
+    background:#fafafa;
+
+}
+
+
+.trecho {
+
+    line-height:1.5;
+
+}
