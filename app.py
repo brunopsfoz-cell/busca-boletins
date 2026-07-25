@@ -30,22 +30,14 @@ def baixar_banco():
 
     resposta.raise_for_status()
 
-
     with open(BANCO, "wb") as arquivo:
-
-        arquivo.write(
-            resposta.content
-        )
-
-
-    tamanho = os.path.getsize(BANCO)
+        arquivo.write(resposta.content)
 
     print(
         "Banco baixado:",
-        tamanho,
+        os.path.getsize(BANCO),
         "bytes"
     )
-
 
 
 
@@ -55,63 +47,23 @@ def verificar_banco():
 
         conn = sqlite3.connect(BANCO)
 
-
-        paginas = conn.execute(
+        conn.execute(
             "SELECT count(*) FROM paginas"
-        ).fetchone()
-
-
-        fts = conn.execute(
-            "SELECT count(*) FROM paginas_fts"
-        ).fetchone()
-
+        )
 
         conn.close()
 
-
         print("Banco OK")
-        print("Páginas:", paginas)
-        print("FTS:", fts)
-
 
 
     except Exception as erro:
 
-        print(
-            "Banco inválido:",
-            erro
-        )
-
+        print("Banco inválido:", erro)
 
         if os.path.exists(BANCO):
-
             os.remove(BANCO)
 
-
         baixar_banco()
-
-
-
-        # testa novamente depois do download
-        conn = sqlite3.connect(BANCO)
-
-        paginas = conn.execute(
-            "SELECT count(*) FROM paginas"
-        ).fetchone()
-
-
-        fts = conn.execute(
-            "SELECT count(*) FROM paginas_fts"
-        ).fetchone()
-
-
-        conn.close()
-
-
-        print("Banco OK após download")
-        print("Páginas:", paginas)
-        print("FTS:", fts)
-
 
 
 
@@ -119,12 +71,9 @@ verificar_banco()
 
 
 
-
 def conectar():
 
-    conn = sqlite3.connect(
-        BANCO
-    )
+    conn = sqlite3.connect(BANCO)
 
     conn.row_factory = sqlite3.Row
 
@@ -141,9 +90,23 @@ def index():
 
     termo = ""
 
+    pagina = int(
+        request.args.get(
+            "pagina",
+            1
+        )
+    )
+
+
+    por_pagina = 50
+
+    total = 0
+
+    total_paginas = 0
+
+
 
     if request.method == "POST":
-
 
         termo = request.form.get(
             "busca",
@@ -151,72 +114,98 @@ def index():
         ).strip()
 
 
-
-        if termo:
-
-
-            print(
-                "Buscando:",
-                termo
-            )
-
-
-            conn = conectar()
-
-            cursor = conn.cursor()
+        pagina = 1
 
 
 
-            consulta = """
+    else:
+
+        termo = request.args.get(
+            "busca",
+            ""
+        ).strip()
+
+
+
+    if termo:
+
+
+        conn = conectar()
+
+        cursor = conn.cursor()
+
+
+
+        # conta todos os resultados
+        cursor.execute(
+            """
+            SELECT count(*)
+            FROM paginas_fts
+            WHERE paginas_fts MATCH ?
+            """,
+            (termo,)
+        )
+
+
+        total = cursor.fetchone()[0]
+
+        total_paginas = (
+            (total + por_pagina - 1)
+            // por_pagina
+        )
+
+
+
+        inicio = (
+            pagina - 1
+        ) * por_pagina
+
+
+
+        cursor.execute(
+            """
             SELECT
                 arquivo,
                 pagina,
                 texto
             FROM paginas_fts
             WHERE paginas_fts MATCH ?
-            LIMIT 100
-            """
+            LIMIT ? OFFSET ?
+            """,
+            (
+                termo,
+                por_pagina,
+                inicio
+            )
+        )
+
+
+        resultados = cursor.fetchall()
+
+
+        conn.close()
 
 
 
-            try:
+        print(
+            "Busca:",
+            termo,
+            "Total:",
+            total,
+            "Página:",
+            pagina
+        )
 
-
-                cursor.execute(
-                    consulta,
-                    (termo,)
-                )
-
-
-                resultados = cursor.fetchall()
-
-
-
-                print(
-                    "Resultados encontrados:",
-                    len(resultados)
-                )
-
-
-
-            except Exception as erro:
-
-
-                print(
-                    "Erro na busca:",
-                    erro
-                )
-
-
-
-            conn.close()
 
 
 
     return render_template(
         "index.html",
         resultados=resultados,
-        termo=termo
+        termo=termo,
+        pagina=pagina,
+        total=total,
+        total_paginas=total_paginas
     )
 
 
@@ -224,7 +213,6 @@ def index():
 
 
 if __name__ == "__main__":
-
 
     app.run(
         host="0.0.0.0",
