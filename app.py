@@ -87,16 +87,48 @@ def conectar():
 
 
 
+def executar_busca(cursor, consulta, termo, peso):
+
+    cursor.execute(
+        consulta,
+        (termo,)
+    )
+
+    resultados = []
+
+    for linha in cursor.fetchall():
+
+        resultados.append(
+            {
+                "arquivo": linha["arquivo"],
+                "pagina": linha["pagina"],
+                "texto": linha["texto"],
+                "peso": peso
+            }
+        )
+
+    return resultados
+
+
+
+
+
 def buscar_nome(cursor, termo):
+
+    resultados = []
 
     palavras = termo.split()
 
 
-    # 1 - Busca exata
+    # ==================================================
+    # 1 - NOME COMPLETO EXATO
+    # ==================================================
+
     frase = '"' + termo + '"'
 
 
-    cursor.execute(
+    resultados += executar_busca(
+        cursor,
         """
         SELECT
             arquivo,
@@ -107,28 +139,22 @@ def buscar_nome(cursor, termo):
                 '<mark>',
                 '</mark>',
                 '...',
-                200
+                250
             ) AS texto
         FROM paginas_fts
         WHERE paginas_fts MATCH ?
-        ORDER BY rank
-        LIMIT 500
         """,
-        (frase,)
+        frase,
+        100
     )
 
 
-    resultados = cursor.fetchall()
 
-
-    if resultados:
-        return resultados
-
-
-
-    # 2 - Busca por proximidade
-    # Exemplo:
+    # ==================================================
+    # 2 - PROXIMIDADE
+    # Ex:
     # ROBERTO NEAR CESAR NEAR COELHO
+    # ==================================================
 
     if len(palavras) > 1:
 
@@ -137,7 +163,8 @@ def buscar_nome(cursor, termo):
         )
 
 
-        cursor.execute(
+        resultados += executar_busca(
+            cursor,
             """
             SELECT
                 arquivo,
@@ -148,28 +175,57 @@ def buscar_nome(cursor, termo):
                     '<mark>',
                     '</mark>',
                     '...',
-                    200
+                    250
                 ) AS texto
             FROM paginas_fts
             WHERE paginas_fts MATCH ?
-            ORDER BY rank
-            LIMIT 500
             """,
-            (proximidade,)
+            proximidade,
+            80
         )
 
 
-        resultados = cursor.fetchall()
+
+    # ==================================================
+    # 3 - PELO MENOS DUAS PALAVRAS
+    # ==================================================
+
+    if len(palavras) > 1:
+
+        duas_palavras = " AND ".join(
+            palavras
+        )
 
 
-        if resultados:
-            return resultados
+        resultados += executar_busca(
+            cursor,
+            """
+            SELECT
+                arquivo,
+                pagina,
+                snippet(
+                    paginas_fts,
+                    2,
+                    '<mark>',
+                    '</mark>',
+                    '...',
+                    250
+                ) AS texto
+            FROM paginas_fts
+            WHERE paginas_fts MATCH ?
+            """,
+            duas_palavras,
+            50
+        )
 
 
 
-    # 3 - Busca normal
+    # ==================================================
+    # 4 - PALAVRAS SEPARADAS
+    # ==================================================
 
-    cursor.execute(
+    resultados += executar_busca(
+        cursor,
         """
         SELECT
             arquivo,
@@ -180,18 +236,48 @@ def buscar_nome(cursor, termo):
                 '<mark>',
                 '</mark>',
                 '...',
-                200
+                250
             ) AS texto
         FROM paginas_fts
         WHERE paginas_fts MATCH ?
-        ORDER BY rank
-        LIMIT 500
         """,
-        (termo,)
+        termo,
+        20
     )
 
 
-    return cursor.fetchall()
+
+    # Remove duplicados
+    vistos = set()
+
+    final = []
+
+
+    for r in resultados:
+
+        chave = (
+            r["arquivo"],
+            r["pagina"]
+        )
+
+        if chave not in vistos:
+
+            vistos.add(chave)
+
+            final.append(r)
+
+
+
+    # Ordena pela relevância
+    final.sort(
+        key=lambda x: x["peso"],
+        reverse=True
+    )
+
+
+    return final[:500]
+
+
 
 
 
@@ -203,6 +289,7 @@ def index():
     resultados = []
 
     termo = ""
+
 
 
     if request.method == "POST":
@@ -219,6 +306,7 @@ def index():
             "busca",
             ""
         ).strip()
+
 
 
 
@@ -249,6 +337,7 @@ def index():
 
 
 
+
     return render_template(
         "index.html",
         resultados=resultados,
@@ -257,6 +346,7 @@ def index():
         pagina=1,
         total_paginas=1
     )
+
 
 
 
