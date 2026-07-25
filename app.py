@@ -139,7 +139,10 @@ def index():
 
 
 
-        # Conta todos os resultados
+        # Primeiro tenta encontrar o nome completo
+        termo_busca = f'"{termo}"'
+
+
 
         cursor.execute(
             """
@@ -148,12 +151,37 @@ def index():
             WHERE paginas_fts MATCH ?
             """,
             (
-                termo,
+                termo_busca,
             )
         )
 
 
         total = cursor.fetchone()[0]
+
+
+
+        # Se não encontrou o nome completo,
+        # procura pelas palavras separadas
+
+        if total == 0:
+
+            termo_busca = termo
+
+
+            cursor.execute(
+                """
+                SELECT count(*)
+                FROM paginas_fts
+                WHERE paginas_fts MATCH ?
+                """,
+                (
+                    termo_busca,
+                )
+            )
+
+
+            total = cursor.fetchone()[0]
+
 
 
         total_paginas = (
@@ -170,7 +198,8 @@ def index():
 
 
 
-        # Busca resultados com trecho encontrado
+
+        # Busca mostrando trecho onde encontrou
 
         cursor.execute(
             """
@@ -187,10 +216,11 @@ def index():
                 ) AS texto
             FROM paginas_fts
             WHERE paginas_fts MATCH ?
+            ORDER BY rank
             LIMIT ? OFFSET ?
             """,
             (
-                termo,
+                termo_busca,
                 por_pagina,
                 inicio
             )
