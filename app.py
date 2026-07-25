@@ -55,6 +55,10 @@ def verificar_banco():
             "SELECT count(*) FROM paginas_fts"
         )
 
+        conn.execute(
+            "SELECT count(*) FROM documentos"
+        )
+
         conn.close()
 
         print("Banco OK")
@@ -96,6 +100,7 @@ def executar_busca(cursor, consulta, termo, peso):
 
     resultados = []
 
+
     for linha in cursor.fetchall():
 
         resultados.append(
@@ -103,11 +108,16 @@ def executar_busca(cursor, consulta, termo, peso):
                 "arquivo": linha["arquivo"],
                 "pagina": linha["pagina"],
                 "texto": linha["texto"],
+                "url": linha["url"],
+                "numero_boletim": linha["numero_boletim"],
+                "data_boletim": linha["data_boletim"],
                 "peso": peso
             }
         )
 
+
     return resultados
+
 
 
 
@@ -120,6 +130,51 @@ def buscar_nome(cursor, termo):
     palavras = termo.split()
 
 
+
+    consulta_base = """
+        SELECT
+
+            paginas_fts.arquivo,
+
+            paginas_fts.pagina,
+
+
+            snippet(
+                paginas_fts,
+                2,
+                '<mark>',
+                '</mark>',
+                '...',
+                300
+            ) AS texto,
+
+
+            documentos.url,
+
+            boletins_info.numero_boletim,
+
+            boletins_info.data_boletim
+
+
+        FROM paginas_fts
+
+
+        LEFT JOIN documentos
+
+        ON paginas_fts.arquivo = documentos.arquivo
+
+
+        LEFT JOIN boletins_info
+
+        ON paginas_fts.arquivo = boletins_info.arquivo
+
+
+        WHERE paginas_fts MATCH ?
+    """
+
+
+
+
     # ==================================================
     # 1 - NOME COMPLETO EXATO
     # ==================================================
@@ -129,34 +184,21 @@ def buscar_nome(cursor, termo):
 
     resultados += executar_busca(
         cursor,
-        """
-        SELECT
-            arquivo,
-            pagina,
-            snippet(
-                paginas_fts,
-                2,
-                '<mark>',
-                '</mark>',
-                '...',
-                250
-            ) AS texto
-        FROM paginas_fts
-        WHERE paginas_fts MATCH ?
-        """,
+        consulta_base,
         frase,
         100
     )
 
 
 
+
+
     # ==================================================
     # 2 - PROXIMIDADE
-    # Ex:
-    # ROBERTO NEAR CESAR NEAR COELHO
     # ==================================================
 
     if len(palavras) > 1:
+
 
         proximidade = " NEAR ".join(
             palavras
@@ -165,100 +207,73 @@ def buscar_nome(cursor, termo):
 
         resultados += executar_busca(
             cursor,
-            """
-            SELECT
-                arquivo,
-                pagina,
-                snippet(
-                    paginas_fts,
-                    2,
-                    '<mark>',
-                    '</mark>',
-                    '...',
-                    250
-                ) AS texto
-            FROM paginas_fts
-            WHERE paginas_fts MATCH ?
-            """,
+            consulta_base,
             proximidade,
             80
         )
 
 
 
+
+
+
     # ==================================================
-    # 3 - PELO MENOS DUAS PALAVRAS
+    # 3 - TODAS AS PALAVRAS
     # ==================================================
 
     if len(palavras) > 1:
 
-        duas_palavras = " AND ".join(
+
+        todas = " AND ".join(
             palavras
         )
 
 
         resultados += executar_busca(
             cursor,
-            """
-            SELECT
-                arquivo,
-                pagina,
-                snippet(
-                    paginas_fts,
-                    2,
-                    '<mark>',
-                    '</mark>',
-                    '...',
-                    250
-                ) AS texto
-            FROM paginas_fts
-            WHERE paginas_fts MATCH ?
-            """,
-            duas_palavras,
+            consulta_base,
+            todas,
             50
         )
 
 
 
+
+
+
+
     # ==================================================
-    # 4 - PALAVRAS SEPARADAS
+    # 4 - PALAVRAS SOLTAS
     # ==================================================
 
     resultados += executar_busca(
         cursor,
-        """
-        SELECT
-            arquivo,
-            pagina,
-            snippet(
-                paginas_fts,
-                2,
-                '<mark>',
-                '</mark>',
-                '...',
-                250
-            ) AS texto
-        FROM paginas_fts
-        WHERE paginas_fts MATCH ?
-        """,
+        consulta_base,
         termo,
         20
     )
 
 
 
+
+
+
     # Remove duplicados
+
     vistos = set()
 
     final = []
 
 
+
     for r in resultados:
+
 
         chave = (
             r["arquivo"],
             r["pagina"]
         )
+
 
         if chave not in vistos:
 
@@ -268,7 +283,10 @@ def buscar_nome(cursor, termo):
 
 
 
-    # Ordena pela relevância
+
+
+    # Mais relevantes primeiro
+
     final.sort(
         key=lambda x: x["peso"],
         reverse=True
@@ -286,6 +304,7 @@ def buscar_nome(cursor, termo):
 @app.route("/", methods=["GET", "POST"])
 def index():
 
+
     resultados = []
 
     termo = ""
@@ -300,12 +319,14 @@ def index():
         ).strip()
 
 
+
     else:
 
         termo = request.args.get(
             "busca",
             ""
         ).strip()
+
 
 
 
@@ -327,6 +348,7 @@ def index():
         conn.close()
 
 
+
         print(
             "Busca:",
             termo,
@@ -338,13 +360,21 @@ def index():
 
 
 
+
     return render_template(
+
         "index.html",
+
         resultados=resultados,
+
         termo=termo,
+
         total=len(resultados),
+
         pagina=1,
+
         total_paginas=1
+
     )
 
 
@@ -355,8 +385,13 @@ def index():
 
 if __name__ == "__main__":
 
+
     app.run(
+
         host="0.0.0.0",
+
         port=5000,
+
         debug=True
+
     )

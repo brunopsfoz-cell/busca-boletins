@@ -31,6 +31,7 @@
 
 
 
+
     <form method="POST">
 
 
@@ -53,24 +54,15 @@
 
 
 
+
     {% if resultados %}
+
 
 
         <h2>
             Foram encontrados {{ total }} resultados.
         </h2>
 
-
-        <p>
-            Exibindo resultados {{ ((pagina - 1) * 50) + 1 }}
-            até
-            {{ ((pagina - 1) * 50) + resultados|length }}
-        </p>
-
-
-        <p>
-            Página {{ pagina }} de {{ total_paginas }}
-        </p>
 
 
 
@@ -82,14 +74,43 @@
         <div class="resultado">
 
 
+
             <h3>
-                📄 {{ resultado['arquivo'] }}
+
+                {% if resultado['numero_boletim'] %}
+
+                    📄 Boletim de Serviço nº {{ resultado['numero_boletim'] }}
+
+                {% else %}
+
+                    📄 {{ resultado['arquivo'] }}
+
+                {% endif %}
+
+
             </h3>
+
+
+
+
+
+            {% if resultado['data_boletim'] %}
+
+            <p>
+                📅 Data: {{ resultado['data_boletim'] }}
+            </p>
+
+            {% endif %}
+
+
+
 
 
             <p>
                 📑 Página: {{ resultado['pagina'] }}
             </p>
+
+
 
 
 
@@ -101,56 +122,39 @@
 
 
 
+
+
+
+            {% if resultado['url'] %}
+
+            <p>
+
+                🔗
+
+                <a 
+                    href="{{ resultado['url'] }}" 
+                    target="_blank"
+                >
+                    Abrir boletim em PDF
+                </a>
+
+
+            </p>
+
+
+            {% endif %}
+
+
+
+
+
         </div>
+
+
 
 
 
         {% endfor %}
-
-
-
-
-
-
-        <div class="paginacao">
-
-
-
-            {% if pagina > 1 %}
-
-
-            <a href="/?busca={{ termo|urlencode }}&pagina={{ pagina - 1 }}">
-                ⬅ Anterior
-            </a>
-
-
-            {% endif %}
-
-
-
-
-
-            <span>
-                Página {{ pagina }} / {{ total_paginas }}
-            </span>
-
-
-
-
-
-            {% if pagina < total_paginas %}
-
-
-            <a href="/?busca={{ termo|urlencode }}&pagina={{ pagina + 1 }}">
-                Próxima ➡
-            </a>
-
-
-            {% endif %}
-
-
-
-        </div>
 
 
 
