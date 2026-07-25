@@ -44,6 +44,7 @@ def baixar_banco():
 
 
 
+
 def verificar_banco():
 
     try:
@@ -79,7 +80,9 @@ def verificar_banco():
 
 
 
+
 verificar_banco()
+
 
 
 
@@ -96,12 +99,9 @@ def conectar():
 
 
 
-def limpar_busca(texto):
 
-    """
-    Remove caracteres que podem quebrar o MATCH do SQLite FTS5
-    mantendo acentos e caracteres de nomes.
-    """
+
+def limpar_busca(texto):
 
     texto = unicodedata.normalize(
         "NFKC",
@@ -129,6 +129,92 @@ def limpar_busca(texto):
 
 
 
+def criar_trecho(texto, termo, tamanho=350):
+
+    if not texto:
+        return ""
+
+
+    texto_lower = texto.lower()
+    termo_lower = termo.lower()
+
+
+    posicao = texto_lower.find(
+        termo_lower
+    )
+
+
+
+    # Se não achar exatamente,
+    # mostra início da página
+
+    if posicao == -1:
+
+        return texto[:tamanho] + "..."
+
+
+
+
+    metade = tamanho // 2
+
+
+    inicio = posicao - metade
+
+    fim = posicao + len(termo) + metade
+
+
+
+
+    if inicio < 0:
+        inicio = 0
+
+
+
+    if fim > len(texto):
+        fim = len(texto)
+
+
+
+
+
+    trecho = texto[inicio:fim]
+
+
+
+
+    if inicio > 0:
+        trecho = "..." + trecho
+
+
+
+    if fim < len(texto):
+        trecho = trecho + "..."
+
+
+
+
+
+    trecho = trecho.replace(
+        texto[posicao:posicao + len(termo)],
+        "<mark>" +
+        texto[posicao:posicao + len(termo)] +
+        "</mark>"
+    )
+
+
+
+    return trecho
+
+
+
+
+
+
+
+
+
+
+
 def executar_busca(cursor, consulta, termo, peso):
 
     cursor.execute(
@@ -136,7 +222,9 @@ def executar_busca(cursor, consulta, termo, peso):
         (termo,)
     )
 
+
     resultados = []
+
 
 
     for linha in cursor.fetchall():
@@ -145,16 +233,28 @@ def executar_busca(cursor, consulta, termo, peso):
             {
                 "arquivo": linha["arquivo"],
                 "pagina": linha["pagina"],
-                "texto": linha["texto"],
+
+                "texto": criar_trecho(
+                    linha["texto"],
+                    termo
+                ),
+
                 "url": linha["url"],
+
                 "numero_boletim": linha["numero_boletim"],
+
                 "data_boletim": linha["data_boletim"],
+
                 "peso": peso
             }
         )
 
 
     return resultados
+
+
+
+
 
 
 
@@ -171,6 +271,8 @@ def buscar_nome(cursor, termo):
 
 
 
+
+
     consulta_base = """
 
         SELECT
@@ -179,25 +281,21 @@ def buscar_nome(cursor, termo):
 
             paginas_fts.pagina,
 
-
-            snippet(
-                paginas_fts,
-                2,
-                '<mark>',
-                '</mark>',
-                '...',
-                300
-            ) AS texto,
+            paginas_fts.texto,
 
 
             documentos.url,
 
+
             boletins_info.numero_boletim,
+
 
             boletins_info.data_boletim
 
 
+
         FROM paginas_fts
+
 
 
         LEFT JOIN documentos
@@ -205,9 +303,11 @@ def buscar_nome(cursor, termo):
         ON paginas_fts.arquivo = documentos.arquivo
 
 
+
         LEFT JOIN boletins_info
 
         ON paginas_fts.arquivo = boletins_info.arquivo
+
 
 
         WHERE paginas_fts MATCH ?
@@ -218,9 +318,8 @@ def buscar_nome(cursor, termo):
 
 
 
-    # ==================================================
-    # 1 - NOME COMPLETO EXATO
-    # ==================================================
+
+    # 1 - Nome completo exato
 
     frase = '"' + termo + '"'
 
@@ -237,9 +336,8 @@ def buscar_nome(cursor, termo):
 
 
 
-    # ==================================================
-    # 2 - PROXIMIDADE
-    # ==================================================
+
+    # 2 - Proximidade
 
     if len(palavras) > 1:
 
@@ -262,9 +360,9 @@ def buscar_nome(cursor, termo):
 
 
 
-    # ==================================================
-    # 3 - TODAS AS PALAVRAS
-    # ==================================================
+
+    # 3 - Todas as palavras
+
 
     if len(palavras) > 1:
 
@@ -288,9 +386,8 @@ def buscar_nome(cursor, termo):
 
 
 
-    # ==================================================
-    # 4 - PALAVRAS SOLTAS
-    # ==================================================
+    # 4 - Busca normal
+
 
     resultados += executar_busca(
         cursor,
@@ -305,7 +402,9 @@ def buscar_nome(cursor, termo):
 
 
 
+
     # Remove duplicados
+
 
     vistos = set()
 
@@ -332,9 +431,6 @@ def buscar_nome(cursor, termo):
 
 
 
-
-
-    # Ordena por relevância
 
     final.sort(
         key=lambda x: x["peso"],
@@ -375,7 +471,6 @@ def index():
         )
 
 
-
     else:
 
 
@@ -412,15 +507,12 @@ def index():
 
 
 
-
-
         print(
             "Busca:",
             termo,
             "Resultados:",
             len(resultados)
         )
-
 
 
 
@@ -444,7 +536,6 @@ def index():
         total_paginas=1
 
     )
-
 
 
 
