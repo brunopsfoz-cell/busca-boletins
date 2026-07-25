@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,74 +9,145 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
+
 <body>
 
 <div class="container">
 
+
     <h1>🔎 Busca de Boletins da UNILA</h1>
+
 
     <p class="descricao">
         Pesquise nomes, portarias, editais, resoluções e publicações.
     </p>
 
 
+
     <form method="POST">
 
+
         <input 
-            type="text" 
+            type="text"
             name="busca"
             value="{{ termo }}"
             placeholder="Digite o nome ou termo..."
             autofocus
         >
 
+
         <button type="submit">
             Pesquisar
         </button>
 
+
     </form>
+
+
 
 
     {% if resultados %}
 
+
         <h2>
-            Resultados encontrados: {{ resultados|length }}
+            Foram encontrados {{ total }} resultados.
         </h2>
+
+
+        <p>
+            Exibindo página {{ pagina }} de {{ total_paginas }}.
+        </p>
+
+
 
 
         {% for resultado in resultados %}
 
+
         <div class="resultado">
+
 
             <h3>
                 📄 {{ resultado['arquivo'] }}
             </h3>
 
+
             <p>
                 📑 Página: {{ resultado['pagina'] }}
             </p>
+
 
             <p class="trecho">
                 {{ resultado['texto'][:500] }}...
             </p>
 
 
+
         </div>
+
 
         {% endfor %}
 
 
+
+
+
+        <div class="paginacao">
+
+
+            {% if pagina > 1 %}
+
+            <a href="/?busca={{ termo }}&pagina={{ pagina - 1 }}">
+                ⬅ Anterior
+            </a>
+
+            {% endif %}
+
+
+
+
+
+            <span>
+                Página {{ pagina }} / {{ total_paginas }}
+            </span>
+
+
+
+
+
+            {% if pagina < total_paginas %}
+
+            <a href="/?busca={{ termo }}&pagina={{ pagina + 1 }}">
+                Próxima ➡
+            </a>
+
+            {% endif %}
+
+
+
+        </div>
+
+
+
+
+
+
     {% elif termo %}
+
 
         <h2>
             Nenhum resultado encontrado.
         </h2>
 
+
     {% endif %}
+
+
 
 
 </div>
 
 
 </body>
+
 </html>
