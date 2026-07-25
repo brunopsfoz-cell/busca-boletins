@@ -51,6 +51,10 @@ def verificar_banco():
             "SELECT count(*) FROM paginas"
         )
 
+        conn.execute(
+            "SELECT count(*) FROM paginas_fts"
+        )
+
         conn.close()
 
         print("Banco OK")
@@ -90,6 +94,7 @@ def index():
 
     termo = ""
 
+
     pagina = int(
         request.args.get(
             "pagina",
@@ -113,9 +118,7 @@ def index():
             ""
         ).strip()
 
-
         pagina = 1
-
 
 
     else:
@@ -136,18 +139,22 @@ def index():
 
 
 
-        # conta todos os resultados
+        # Conta todos os resultados
+
         cursor.execute(
             """
             SELECT count(*)
             FROM paginas_fts
             WHERE paginas_fts MATCH ?
             """,
-            (termo,)
+            (
+                termo,
+            )
         )
 
 
         total = cursor.fetchone()[0]
+
 
         total_paginas = (
             (total + por_pagina - 1)
@@ -162,12 +169,23 @@ def index():
 
 
 
+
+
+        # Busca mostrando o trecho onde encontrou
+
         cursor.execute(
             """
             SELECT
                 arquivo,
                 pagina,
-                texto
+                snippet(
+                    paginas_fts,
+                    2,
+                    '<mark>',
+                    '</mark>',
+                    '...',
+                    40
+                ) AS texto
             FROM paginas_fts
             WHERE paginas_fts MATCH ?
             LIMIT ? OFFSET ?
@@ -178,6 +196,7 @@ def index():
                 inicio
             )
         )
+
 
 
         resultados = cursor.fetchall()
@@ -207,6 +226,7 @@ def index():
         total=total,
         total_paginas=total_paginas
     )
+
 
 
 
