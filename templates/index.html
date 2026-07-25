@@ -9,9 +9,7 @@
 
     <title>Busca de Boletins UNILA</title>
 
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 
 </head>
 
@@ -25,17 +23,19 @@
     <h1>🔎 Busca de Boletins da UNILA</h1>
 
 
-  <p class="descricao">
-    Ferramenta independente de consulta aos Boletins de Serviço da UNILA.
-</p>
+    <p class="descricao">
+        Ferramenta independente de consulta aos Boletins de Serviço da UNILA.
+    </p>
 
-<p class="descricao">
-    Acervo disponível: boletins publicados entre junho de 2011 e julho de 2021.
-</p>
 
-<p class="descricao">
-    Pesquise nomes, portarias, editais, resoluções e demais publicações.
-</p>
+    <p class="descricao">
+        Acervo disponível: boletins publicados entre junho de 2011 e julho de 2021.
+    </p>
+
+
+    <p class="descricao">
+        Pesquise nomes, portarias, editais, resoluções e demais publicações.
+    </p>
 
 
 
@@ -66,7 +66,6 @@
     {% if resultados %}
 
 
-
         <h2>
             Foram encontrados {{ total }} resultados.
         </h2>
@@ -83,20 +82,20 @@
 
 
 
+            {% if resultado['numero_boletim'] %}
+
             <h3>
-
-                {% if resultado['numero_boletim'] %}
-
-                    📄 Boletim de Serviço nº {{ resultado['numero_boletim'] }}
-
-                {% else %}
-
-                    📄 {{ resultado['arquivo'] }}
-
-                {% endif %}
-
-
+                📄 Boletim de Serviço nº {{ resultado['numero_boletim'] }}
             </h3>
+
+            {% else %}
+
+            <h3>
+                📄 {{ resultado['arquivo'] }}
+            </h3>
+
+            {% endif %}
+
 
 
 
@@ -105,7 +104,8 @@
             {% if resultado['data_boletim'] %}
 
             <p>
-                📅 Data: {{ resultado['data_boletim'] }}
+                📅 Data do boletim:
+                {{ resultado['data_boletim'] }}
             </p>
 
             {% endif %}
@@ -114,9 +114,12 @@
 
 
 
+
             <p>
-                📑 Página: {{ resultado['pagina'] }}
+                📑 Página:
+                {{ resultado['pagina'] }}
             </p>
+
 
 
 
@@ -139,16 +142,14 @@
 
                 🔗
 
-                <a 
-                    href="{{ resultado['url'] }}" 
+                <a
+                    href="{{ resultado['url'] }}"
                     target="_blank"
                 >
                     Abrir boletim em PDF
                 </a>
 
-
             </p>
-
 
             {% endif %}
 

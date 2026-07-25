@@ -2,6 +2,8 @@ from flask import Flask, render_template, request
 import sqlite3
 import os
 import requests
+import re
+import unicodedata
 
 
 app = Flask(__name__)
@@ -41,6 +43,7 @@ def baixar_banco():
 
 
 
+
 def verificar_banco():
 
     try:
@@ -75,7 +78,9 @@ def verificar_banco():
 
 
 
+
 verificar_banco()
+
 
 
 
@@ -86,6 +91,39 @@ def conectar():
     conn.row_factory = sqlite3.Row
 
     return conn
+
+
+
+
+
+def limpar_busca(texto):
+
+    """
+    Remove caracteres que podem quebrar o MATCH do SQLite FTS5
+    mantendo acentos e caracteres de nomes.
+    """
+
+    texto = unicodedata.normalize(
+        "NFKC",
+        texto
+    )
+
+
+    texto = re.sub(
+        r'[^\w\sáéíóúãõçÁÉÍÓÚÃÕÇ]',
+        ' ',
+        texto
+    )
+
+
+    texto = " ".join(
+        texto.split()
+    )
+
+
+    return texto
+
+
 
 
 
@@ -123,7 +161,9 @@ def executar_busca(cursor, consulta, termo, peso):
 
 
 
+
 def buscar_nome(cursor, termo):
+
 
     resultados = []
 
@@ -132,6 +172,7 @@ def buscar_nome(cursor, termo):
 
 
     consulta_base = """
+
         SELECT
 
             paginas_fts.arquivo,
@@ -170,7 +211,9 @@ def buscar_nome(cursor, termo):
 
 
         WHERE paginas_fts MATCH ?
+
     """
+
 
 
 
@@ -188,6 +231,7 @@ def buscar_nome(cursor, termo):
         frase,
         100
     )
+
 
 
 
@@ -211,6 +255,7 @@ def buscar_nome(cursor, termo):
             proximidade,
             80
         )
+
 
 
 
@@ -242,6 +287,7 @@ def buscar_nome(cursor, termo):
 
 
 
+
     # ==================================================
     # 4 - PALAVRAS SOLTAS
     # ==================================================
@@ -252,6 +298,7 @@ def buscar_nome(cursor, termo):
         termo,
         20
     )
+
 
 
 
@@ -285,7 +332,9 @@ def buscar_nome(cursor, termo):
 
 
 
-    # Mais relevantes primeiro
+
+
+    # Ordena por relevância
 
     final.sort(
         key=lambda x: x["peso"],
@@ -293,7 +342,10 @@ def buscar_nome(cursor, termo):
     )
 
 
+
     return final[:500]
+
+
 
 
 
@@ -311,21 +363,30 @@ def index():
 
 
 
+
     if request.method == "POST":
 
-        termo = request.form.get(
-            "busca",
-            ""
-        ).strip()
+
+        termo = limpar_busca(
+            request.form.get(
+                "busca",
+                ""
+            )
+        )
 
 
 
     else:
 
-        termo = request.args.get(
-            "busca",
-            ""
-        ).strip()
+
+        termo = limpar_busca(
+            request.args.get(
+                "busca",
+                ""
+            )
+        )
+
+
 
 
 
@@ -339,13 +400,17 @@ def index():
         cursor = conn.cursor()
 
 
+
         resultados = buscar_nome(
             cursor,
             termo
         )
 
 
+
         conn.close()
+
+
 
 
 
@@ -355,6 +420,9 @@ def index():
             "Resultados:",
             len(resultados)
         )
+
+
+
 
 
 
@@ -376,6 +444,8 @@ def index():
         total_paginas=1
 
     )
+
+
 
 
 
