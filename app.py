@@ -12,6 +12,7 @@ BANCO = "banco/boletins.db"
 URL_BANCO = "https://drive.google.com/uc?export=download&id=1DIdZcUa3DyXuA7kAPG83w0yNxnMNCOoo"
 
 
+
 def baixar_banco():
 
     os.makedirs("banco", exist_ok=True)
@@ -28,13 +29,16 @@ def baixar_banco():
     print("Banco baixado!")
 
 
+
 def verificar_banco():
 
     try:
 
         conn = sqlite3.connect(BANCO)
 
-        conn.execute("SELECT count(*) FROM paginas")
+        conn.execute(
+            "SELECT count(*) FROM paginas"
+        )
 
         paginas = conn.execute(
             "SELECT count(*) FROM paginas"
@@ -76,6 +80,7 @@ def conectar():
 
 
 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
 
@@ -86,12 +91,18 @@ def index():
 
     if request.method == "POST":
 
-        termo = request.form.get("busca", "").strip()
+        termo = request.form.get(
+            "busca",
+            ""
+        ).strip()
 
 
         if termo:
 
-            print("Buscando:", termo)
+            print(
+                "Buscando:",
+                termo
+            )
 
             conn = conectar()
 
@@ -113,10 +124,12 @@ def index():
 
                 cursor.execute(
                     consulta,
-                    (f'"{termo}"',)
+                    (termo,)
                 )
 
+
                 resultados = cursor.fetchall()
+
 
                 print(
                     "Resultados encontrados:",
@@ -141,6 +154,7 @@ def index():
         resultados=resultados,
         termo=termo
     )
+
 
 
 
