@@ -129,92 +129,6 @@ def limpar_busca(texto):
 
 
 
-def criar_trecho(texto, termo, tamanho=350):
-
-    if not texto:
-        return ""
-
-
-    texto_lower = texto.lower()
-    termo_lower = termo.lower()
-
-
-    posicao = texto_lower.find(
-        termo_lower
-    )
-
-
-
-    # Se não achar exatamente,
-    # mostra início da página
-
-    if posicao == -1:
-
-        return texto[:tamanho] + "..."
-
-
-
-
-    metade = tamanho // 2
-
-
-    inicio = posicao - metade
-
-    fim = posicao + len(termo) + metade
-
-
-
-
-    if inicio < 0:
-        inicio = 0
-
-
-
-    if fim > len(texto):
-        fim = len(texto)
-
-
-
-
-
-    trecho = texto[inicio:fim]
-
-
-
-
-    if inicio > 0:
-        trecho = "..." + trecho
-
-
-
-    if fim < len(texto):
-        trecho = trecho + "..."
-
-
-
-
-
-    trecho = trecho.replace(
-        texto[posicao:posicao + len(termo)],
-        "<mark>" +
-        texto[posicao:posicao + len(termo)] +
-        "</mark>"
-    )
-
-
-
-    return trecho
-
-
-
-
-
-
-
-
-
-
-
 def executar_busca(cursor, consulta, termo, peso):
 
     cursor.execute(
@@ -226,35 +140,22 @@ def executar_busca(cursor, consulta, termo, peso):
     resultados = []
 
 
-
     for linha in cursor.fetchall():
 
         resultados.append(
             {
                 "arquivo": linha["arquivo"],
                 "pagina": linha["pagina"],
-
-                "texto": criar_trecho(
-                    linha["texto"],
-                    termo
-                ),
-
+                "texto": linha["texto"],
                 "url": linha["url"],
-
                 "numero_boletim": linha["numero_boletim"],
-
                 "data_boletim": linha["data_boletim"],
-
                 "peso": peso
             }
         )
 
 
     return resultados
-
-
-
-
 
 
 
@@ -271,8 +172,6 @@ def buscar_nome(cursor, termo):
 
 
 
-
-
     consulta_base = """
 
         SELECT
@@ -281,7 +180,15 @@ def buscar_nome(cursor, termo):
 
             paginas_fts.pagina,
 
-            paginas_fts.texto,
+
+            snippet(
+                paginas_fts,
+                2,
+                '<mark>',
+                '</mark>',
+                '...',
+                500
+            ) AS texto,
 
 
             documentos.url,
@@ -336,7 +243,6 @@ def buscar_nome(cursor, termo):
 
 
 
-
     # 2 - Proximidade
 
     if len(palavras) > 1:
@@ -360,9 +266,7 @@ def buscar_nome(cursor, termo):
 
 
 
-
     # 3 - Todas as palavras
-
 
     if len(palavras) > 1:
 
@@ -385,9 +289,7 @@ def buscar_nome(cursor, termo):
 
 
 
-
     # 4 - Busca normal
-
 
     resultados += executar_busca(
         cursor,
@@ -402,9 +304,7 @@ def buscar_nome(cursor, termo):
 
 
 
-
     # Remove duplicados
-
 
     vistos = set()
 
@@ -438,7 +338,6 @@ def buscar_nome(cursor, termo):
     )
 
 
-
     return final[:500]
 
 
@@ -462,7 +361,6 @@ def index():
 
     if request.method == "POST":
 
-
         termo = limpar_busca(
             request.form.get(
                 "busca",
@@ -473,14 +371,12 @@ def index():
 
     else:
 
-
         termo = limpar_busca(
             request.args.get(
                 "busca",
                 ""
             )
         )
-
 
 
 
@@ -495,12 +391,10 @@ def index():
         cursor = conn.cursor()
 
 
-
         resultados = buscar_nome(
             cursor,
             termo
         )
-
 
 
         conn.close()
@@ -513,7 +407,6 @@ def index():
             "Resultados:",
             len(resultados)
         )
-
 
 
 
