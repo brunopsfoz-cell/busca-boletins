@@ -87,6 +87,116 @@ def conectar():
 
 
 
+def buscar_nome(cursor, termo):
+
+    palavras = termo.split()
+
+
+    # 1 - Busca exata
+    frase = '"' + termo + '"'
+
+
+    cursor.execute(
+        """
+        SELECT
+            arquivo,
+            pagina,
+            snippet(
+                paginas_fts,
+                2,
+                '<mark>',
+                '</mark>',
+                '...',
+                200
+            ) AS texto
+        FROM paginas_fts
+        WHERE paginas_fts MATCH ?
+        ORDER BY rank
+        LIMIT 500
+        """,
+        (frase,)
+    )
+
+
+    resultados = cursor.fetchall()
+
+
+    if resultados:
+        return resultados
+
+
+
+    # 2 - Busca por proximidade
+    # Exemplo:
+    # ROBERTO NEAR CESAR NEAR COELHO
+
+    if len(palavras) > 1:
+
+        proximidade = " NEAR ".join(
+            palavras
+        )
+
+
+        cursor.execute(
+            """
+            SELECT
+                arquivo,
+                pagina,
+                snippet(
+                    paginas_fts,
+                    2,
+                    '<mark>',
+                    '</mark>',
+                    '...',
+                    200
+                ) AS texto
+            FROM paginas_fts
+            WHERE paginas_fts MATCH ?
+            ORDER BY rank
+            LIMIT 500
+            """,
+            (proximidade,)
+        )
+
+
+        resultados = cursor.fetchall()
+
+
+        if resultados:
+            return resultados
+
+
+
+    # 3 - Busca normal
+
+    cursor.execute(
+        """
+        SELECT
+            arquivo,
+            pagina,
+            snippet(
+                paginas_fts,
+                2,
+                '<mark>',
+                '</mark>',
+                '...',
+                200
+            ) AS texto
+        FROM paginas_fts
+        WHERE paginas_fts MATCH ?
+        ORDER BY rank
+        LIMIT 500
+        """,
+        (termo,)
+    )
+
+
+    return cursor.fetchall()
+
+
+
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
 
@@ -95,30 +205,12 @@ def index():
     termo = ""
 
 
-    pagina = int(
-        request.args.get(
-            "pagina",
-            1
-        )
-    )
-
-
-    por_pagina = 50
-
-    total = 0
-
-    total_paginas = 0
-
-
-
     if request.method == "POST":
 
         termo = request.form.get(
             "busca",
             ""
         ).strip()
-
-        pagina = 1
 
 
     else:
@@ -138,110 +230,20 @@ def index():
         cursor = conn.cursor()
 
 
-
-        # Primeiro tenta encontrar o nome completo
-        termo_busca = f'"{termo}"'
-
-
-
-        cursor.execute(
-            """
-            SELECT count(*)
-            FROM paginas_fts
-            WHERE paginas_fts MATCH ?
-            """,
-            (
-                termo_busca,
-            )
+        resultados = buscar_nome(
+            cursor,
+            termo
         )
-
-
-        total = cursor.fetchone()[0]
-
-
-
-        # Se não encontrou o nome completo,
-        # procura pelas palavras separadas
-
-        if total == 0:
-
-            termo_busca = termo
-
-
-            cursor.execute(
-                """
-                SELECT count(*)
-                FROM paginas_fts
-                WHERE paginas_fts MATCH ?
-                """,
-                (
-                    termo_busca,
-                )
-            )
-
-
-            total = cursor.fetchone()[0]
-
-
-
-        total_paginas = (
-            (total + por_pagina - 1)
-            // por_pagina
-        )
-
-
-
-        inicio = (
-            pagina - 1
-        ) * por_pagina
-
-
-
-
-
-        # Busca mostrando trecho onde encontrou
-
-        cursor.execute(
-            """
-            SELECT
-                arquivo,
-                pagina,
-                snippet(
-                    paginas_fts,
-                    2,
-                    '<mark>',
-                    '</mark>',
-                    '...',
-                    200
-                ) AS texto
-            FROM paginas_fts
-            WHERE paginas_fts MATCH ?
-            ORDER BY rank
-            LIMIT ? OFFSET ?
-            """,
-            (
-                termo_busca,
-                por_pagina,
-                inicio
-            )
-        )
-
-
-
-        resultados = cursor.fetchall()
 
 
         conn.close()
 
 
-
         print(
             "Busca:",
             termo,
-            "Total:",
-            total,
-            "Página:",
-            pagina
+            "Resultados:",
+            len(resultados)
         )
 
 
@@ -251,9 +253,9 @@ def index():
         "index.html",
         resultados=resultados,
         termo=termo,
-        pagina=pagina,
-        total=total,
-        total_paginas=total_paginas
+        total=len(resultados),
+        pagina=1,
+        total_paginas=1
     )
 
 
