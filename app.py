@@ -170,8 +170,7 @@ def index():
 
 
 
-
-        # Busca mostrando o trecho onde encontrou
+        # Busca resultados com trecho encontrado
 
         cursor.execute(
             """
@@ -184,7 +183,7 @@ def index():
                     '<mark>',
                     '</mark>',
                     '...',
-                    40
+                    200
                 ) AS texto
             FROM paginas_fts
             WHERE paginas_fts MATCH ?

@@ -2,15 +2,22 @@
 <html lang="pt-BR">
 
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Busca de Boletins UNILA</title>
 
+
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+
 </head>
 
 
 <body>
+
 
 <div class="container">
 
@@ -27,7 +34,7 @@
     <form method="POST">
 
 
-        <input 
+        <input
             type="text"
             name="busca"
             value="{{ termo }}"
@@ -55,13 +62,21 @@
 
 
         <p>
-            Exibindo página {{ pagina }} de {{ total_paginas }}.
+            Exibindo resultados {{ ((pagina - 1) * 50) + 1 }}
+            até
+            {{ ((pagina - 1) * 50) + resultados|length }}
+        </p>
+
+
+        <p>
+            Página {{ pagina }} de {{ total_paginas }}
         </p>
 
 
 
 
         {% for resultado in resultados %}
+
 
 
         <div class="resultado">
@@ -77,13 +92,17 @@
             </p>
 
 
-            <p class="trecho">
+
+            <div class="trecho">
+
                 {{ resultado['texto'] | safe }}
-            </p>
+
+            </div>
 
 
 
         </div>
+
 
 
         {% endfor %}
@@ -92,14 +111,18 @@
 
 
 
+
         <div class="paginacao">
+
 
 
             {% if pagina > 1 %}
 
-            <a href="/?busca={{ termo }}&pagina={{ pagina - 1 }}">
+
+            <a href="/?busca={{ termo|urlencode }}&pagina={{ pagina - 1 }}">
                 ⬅ Anterior
             </a>
+
 
             {% endif %}
 
@@ -117,9 +140,11 @@
 
             {% if pagina < total_paginas %}
 
-            <a href="/?busca={{ termo }}&pagina={{ pagina + 1 }}">
+
+            <a href="/?busca={{ termo|urlencode }}&pagina={{ pagina + 1 }}">
                 Próxima ➡
             </a>
+
 
             {% endif %}
 
@@ -131,13 +156,14 @@
 
 
 
-
     {% elif termo %}
+
 
 
         <h2>
             Nenhum resultado encontrado.
         </h2>
+
 
 
     {% endif %}
@@ -149,5 +175,6 @@
 
 
 </body>
+
 
 </html>
