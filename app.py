@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request
 import sqlite3
 import os
-import re
 import requests
 
 
@@ -32,19 +31,29 @@ def baixar_banco():
 def verificar_banco():
 
     try:
+
         conn = sqlite3.connect(BANCO)
 
-        conn.execute(
+        conn.execute("SELECT count(*) FROM paginas")
+
+        paginas = conn.execute(
             "SELECT count(*) FROM paginas"
-        )
+        ).fetchone()
+
+        fts = conn.execute(
+            "SELECT count(*) FROM paginas_fts"
+        ).fetchone()
 
         conn.close()
 
         print("Banco OK")
+        print("Páginas:", paginas)
+        print("FTS:", fts)
 
-    except Exception:
 
-        print("Banco inválido. Baixando novamente...")
+    except Exception as erro:
+
+        print("Banco inválido:", erro)
 
         if os.path.exists(BANCO):
             os.remove(BANCO)
@@ -77,10 +86,12 @@ def index():
 
     if request.method == "POST":
 
-        termo = request.form["busca"].strip()
+        termo = request.form.get("busca", "").strip()
 
 
         if termo:
+
+            print("Buscando:", termo)
 
             conn = conectar()
 
@@ -88,7 +99,7 @@ def index():
 
 
             consulta = """
-            SELECT 
+            SELECT
                 arquivo,
                 pagina,
                 texto
@@ -102,15 +113,23 @@ def index():
 
                 cursor.execute(
                     consulta,
-                    (termo,)
+                    (f'"{termo}"',)
                 )
 
                 resultados = cursor.fetchall()
 
+                print(
+                    "Resultados encontrados:",
+                    len(resultados)
+                )
+
 
             except Exception as erro:
 
-                print(erro)
+                print(
+                    "Erro na busca:",
+                    erro
+                )
 
 
             conn.close()
